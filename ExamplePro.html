@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <title>地推拜访助手 Pro</title>
+    <style>
+        :root {
+            --primary: #2563eb;
+            --success: #16a34a;
+            --warning: #d97706;
+            --danger: #dc2626;
+            --info: #0891b2;
+            --bg-color: #f0f2f5;
+            --card-bg: #ffffff;
+            --text-main: #1f2937;
+            --text-sub: #6b7280;
+        }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-color);
+            margin: 0;
+            padding: 0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+            color: var(--text-main);
+        }
+
+        /* 顶部汇总卡片 */
+        .header {
+            background: var(--card-bg);
+            padding: 15px 20px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+            z-index: 10;
+        }
+
+        .total-box { text-align: center; margin-bottom: 15px; }
+        .total-label { font-size: 14px; color: var(--text-sub); }
+        .total-num {
+            font-size: 42px;
+            font-weight: 800;
+            color: var(--primary);
+            line-height: 1.2;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            text-align: center;
+        }
+        .stat-item {
+            background: #f8fafc;
+            padding: 8px 4px;
+            border-radius: 8px;
+            font-size: 12px;
+        }
+        .stat-val {
+            display: block;
+            font-size: 16px;
+            font-weight: bold;
+            margin-top: 4px;
+        }
+
+        /* 记录列表 */
+        .log-container {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            -webkit-overflow-scrolling: touch;
+        }
+        .log-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+            padding-bottom: 8px;
+        }
+        .log-header strong { font-size: 14px; }
+        .clear-btn {
+            background: none;
+            border: none;
+            color: #999;
+            font-size: 13px;
+            cursor: pointer;
+            padding: 4px 8px;
+        }
+
+        .log-list { list-style: none; padding: 0; margin: 0; }
+        .log-item {
+            background: var(--card-bg);
+            margin-bottom: 8px;
+            padding: 12px 15px;
+            border-radius: 10px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 14px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.02);
+        }
+        .log-left { display: flex; align-items: center; gap: 10px; }
+        .log-icon { width: 24px; text-align: center; }
+        .log-time { color: #9ca3af; font-size: 12px; }
+
+        .empty-tip {
+            text-align: center;
+            color: #ccc;
+            font-size: 12px;
+            margin-top: 20px;
+        }
+
+        /* 底部操作区 */
+        .controls {
+            background: var(--card-bg);
+            padding: 15px;
+            padding-bottom: max(15px, env(safe-area-inset-bottom));
+            box-shadow: 0 -4px 20px rgba(0,0,0,0.05);
+            z-index: 20;
+        }
+
+        .grid-btns {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 12px;
+        }
+
+        .btn {
+            border: none;
+            border-radius: 12px;
+            padding: 18px 0;
+            font-size: 16px;
+            font-weight: 600;
+            color: white;
+            cursor: pointer;
+            transition: transform 0.1s;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            gap: 5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            user-select: none;
+            -webkit-user-select: none;
+            touch-action: manipulation;
+        }
+        .btn:active { transform: scale(0.96); opacity: 0.9; }
+        .btn-icon { font-size: 20px; }
+
+        .btn-visit { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+        .btn-add5  { background: linear-gradient(135deg, #8b5cf6, #7c3aed); }
+        .btn-phone { background: linear-gradient(135deg, #06b6d4, #0891b2); }
+        .btn-steps { background: linear-gradient(135deg, #f59e0b, #d97706); color: #fff; }
+
+        .big-action-row {
+            display: grid;
+            grid-template-columns: 3fr 1fr;
+            gap: 12px;
+        }
+        .btn-deal {
+            background: linear-gradient(135deg, #22c55e, #16a34a);
+            font-size: 18px;
+            padding: 20px 0;
+        }
+        .btn-undo {
+            background: #fee2e2;
+            color: var(--danger);
+            font-size: 14px;
+            padding: 20px 0;
+            box-shadow: none;
+            border: 1px solid #fecaca;
+        }
+
+        /* 标签颜色 */
+        .c-visit { color: var(--primary); }
+        .c-phone { color: var(--info); }
+        .c-steps { color: var(--warning); }
+        .c-deal  { color: var(--success); font-weight: bold; }
+        .c-undo  { color: var(--danger); font-size: 12px; }
+
+        /* 自定义弹窗 */
+        .modal-mask {
+            position: fixed;
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: rgba(0,0,0,0.4);
+            z-index: 100;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-mask.show { display: flex; }
+        .modal-box {
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px 20px 16px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+        }
+        .modal-box p {
+            margin: 0 0 20px;
+            font-size: 15px;
+            color: var(--text-main);
+            line-height: 1.5;
+        }
+        .modal-actions { display: flex; gap: 10px; }
+        .modal-btn {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 10px;
+            border: none;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+        .modal-btn.cancel { background: #f3f4f6; color: var(--text-sub); }
+        .modal-btn.confirm { background: var(--danger); color: #fff; }
+        .modal-btn.confirm.green { background: var(--success); }
+    </style>
+</head>
+<body>
+
+    <!-- 顶部汇总 -->
+    <div class="header">
+        <div class="total-box">
+            <div class="total-label">今日总互动</div>
+            <div class="total-num" id="displayTotal">0</div>
+        </div>
+        <div class="stats-grid">
+            <div class="stat-item">拜访<span class="stat-val c-visit" id="valVisit">0</span></div>
+            <div class="stat-item">查手机<span class="stat-val c-phone" id="valPhone">0</span></div>
+            <div class="stat-item">听五步<span class="stat-val c-steps" id="valSteps">0</span></div>
+            <div class="stat-item">成交<span class="stat-val c-deal" id="valDeal">0</span></div>
+        </div>
+    </div>
+
+    <!-- 记录列表 -->
+    <div class="log-container" id="logContainer">
+        <div class="log-header">
+            <strong>操作记录</strong>
+            <button class="clear-btn" onclick="askClearAll()">清空数据</button>
+        </div>
+        <ul class="log-list" id="logList"></ul>
+        <div class="empty-tip" id="emptyTip">暂无记录，点击下方按钮开始</div>
+    </div>
+
+    <!-- 底部操作按钮 -->
+    <div class="controls">
+        <div class="grid-btns">
+            <button class="btn btn-visit" onclick="add('visit', 1)">
+                <span class="btn-icon">👣</span> 拜访 +1
+            </button>
+            <button class="btn btn-add5" onclick="add('visit', 5)">
+                <span class="btn-icon">🚀</span> 拜访 +5
+            </button>
+            <button class="btn btn-phone" onclick="add('phone', 1)">
+                <span class="btn-icon">📱</span> 查手机
+            </button>
+            <button class="btn btn-steps" onclick="add('steps', 1)">
+                <span class="btn-icon">👂</span> 听五步
+            </button>
+        </div>
+        <div class="big-action-row">
+            <button class="btn btn-deal" onclick="add('deal', 1)">
+                💰 成交一单
+            </button>
+            <button class="btn btn-undo" onclick="undo()">
+                ↩️<br>撤回
+            </button>
+        </div>
+    </div>
+
+    <!-- 自定义弹窗 -->
+    <div class="modal-mask" id="modalMask">
+        <div class="modal-box">
+            <p id="modalText">确定吗？</p>
+            <div class="modal-actions">
+                <button class="modal-btn cancel" onclick="closeModal()">取消</button>
+                <button class="modal-btn confirm" id="modalConfirm">确定</button>
+            </div>
+        </div>
+    </div>
+
+<script>
+    // ===== 数据（兼容旧版 localStorage key）=====
+    let data = {
+        visit: 0,
+        phone: 0,
+        steps: 0,
+        deal: 0,
+        history: []
+    };
+
+    const STORAGE_KEY = 'ditui_data_v2';
+    let actionLock = false;
+    let modalCallback = null;
+
+    // ===== 初始化 =====
+    window.onload = function() {
+        try {
+            // 优先读新版 key，其次兼容 Leader.html 的旧 key
+            let saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) saved = localStorage.getItem('ditui_data_v1');
+            if (saved) {
+                const parsed = JSON.parse(saved);
+                // 字段映射：兼容 Leader.html 的命名
+                data.visit = parsed.visits ?? parsed.visit ?? 0;
+                data.phone = parsed.phoneChecks ?? parsed.phone ?? 0;
+                data.steps = parsed.stepsHeard ?? parsed.steps ?? 0;
+                data.deal  = parsed.deals ?? parsed.deal ?? 0;
+                data.history = parsed.history || [];
+            }
+        } catch (e) {
+            console.warn('localStorage 读取失败', e);
+        }
+        render();
+    };
+
+    // ===== 保存（带异常保护）=====
+    function save() {
+        try {
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+        } catch (e) {
+            console.warn('localStorage 写入失败', e);
+        }
+    }
+
+    // ===== 添加记录（防抖）=====
+    function add(type, val) {
+        if (actionLock) return;
+        actionLock = true;
+        setTimeout(() => { actionLock = false; }, 300);
+
+        if (navigator.vibrate) navigator.vibrate(50);
+
+        data[type] += val;
+
+        const now = new Date();
+        const timeStr = formatTime(now);
+
+        let label = '';
+        if (type === 'visit') label = val === 1 ? '拜访 +1' : '批量拜访(+5)';
+        if (type === 'phone') label = '查手机';
+        if (type === 'steps') label = '听五步';
+        if (type === 'deal')  label = '成交';
+
+        data.history.unshift({
+            id: Date.now() + Math.random(),
+            type, val, label, time: timeStr, ts: Date.now()
+        });
+
+        // 限制历史记录最多 200 条
+        if (data.history.length > 200) data.history.pop();
+
+        save();
+        render();
+        scrollToTop();
+    }
+
+    // ===== 撤回（支持任意类型，防撤回 undo 本身）=====
+    function undo() {
+        if (data.history.length === 0) return;
+        const last = data.history[0];
+        if (last.type === 'undo') return;  // 防止撤回“撤回记录”
+
+        showModal(`确定要撤回最近一条记录："${last.label}" 吗？`, () => {
+            data[last.type] -= last.val;
+            if (data[last.type] < 0) data[last.type] = 0;
+
+            data.history.shift();
+
+            data.history.unshift({
+                id: Date.now() + Math.random(),
+                type: 'undo',
+                val: 0,
+                label: `已撤回: ${last.label}`,
+                time: formatTime(new Date()),
+                ts: Date.now()
+            });
+
+            save();
+            render();
+            scrollToTop();
+        });
+    }
+
+    // ===== 清空数据 =====
+    function askClearAll() {
+        showModal('确定要清空所有今日数据吗？此操作不可恢复。', () => {
+            data = { visit: 0, phone: 0, steps: 0, deal: 0, history: [] };
+            save();
+            render();
+        }, 'green');
+    }
+
+    // ===== 自定义弹窗 =====
+    function showModal(text, onConfirm, confirmStyle) {
+        document.getElementById('modalText').innerText = text;
+        const confirmBtn = document.getElementById('modalConfirm');
+        confirmBtn.className = 'modal-btn confirm' + (confirmStyle === 'green' ? ' green' : '');
+        document.getElementById('modalMask').classList.add('show');
+        modalCallback = onConfirm;
+    }
+
+    function closeModal() {
+        document.getElementById('modalMask').classList.remove('show');
+        modalCallback = null;
+    }
+
+    document.getElementById('modalConfirm').addEventListener('click', () => {
+        if (modalCallback) modalCallback();
+        closeModal();
+    });
+
+    // ===== 工具函数 =====
+    function formatTime(date) {
+        const h = date.getHours().toString().padStart(2, '0');
+        const m = date.getMinutes().toString().padStart(2, '0');
+        const s = date.getSeconds().toString().padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }
+
+    function scrollToTop() {
+        document.getElementById('logContainer').scrollTop = 0;
+    }
+
+    // ===== 渲染 =====
+    function render() {
+        document.getElementById('valVisit').innerText = data.visit;
+        document.getElementById('valPhone').innerText = data.phone;
+        document.getElementById('valSteps').innerText = data.steps;
+        document.getElementById('valDeal').innerText = data.deal;
+
+        const total = data.visit + data.phone + data.steps + data.deal;
+        document.getElementById('displayTotal').innerText = total;
+
+        const list = document.getElementById('logList');
+        const emptyTip = document.getElementById('emptyTip');
+        list.innerHTML = '';
+
+        if (data.history.length === 0) {
+            emptyTip.style.display = 'block';
+        } else {
+            emptyTip.style.display = 'none';
+            data.history.forEach(item => {
+                const li = document.createElement('li');
+                li.className = 'log-item';
+
+                let icon = '', colorClass = '';
+                if (item.type === 'visit') { icon = '👣'; colorClass = 'c-visit'; }
+                else if (item.type === 'phone') { icon = '📱'; colorClass = 'c-phone'; }
+                else if (item.type === 'steps') { icon = '👂'; colorClass = 'c-steps'; }
+                else if (item.type === 'deal')  { icon = '💰'; colorClass = 'c-deal'; }
+                else if (item.type === 'undo')  { icon = '↩️'; colorClass = 'c-undo'; }
+
+                li.innerHTML = `
+                    <div class="log-left">
+                        <span class="log-icon">${icon}</span>
+                        <span class="${colorClass}">${item.label}</span>
+                    </div>
+                    <span class="log-time">${item.time}</span>
+                `;
+                list.appendChild(li);
+            });
+        }
+    }
+</script>
+</body>
+</html>
